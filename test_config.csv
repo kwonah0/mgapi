@@ -1,0 +1,5 @@
+component,key,value,environment,action,description
+database,host,localhost,dev,set,Database host configuration
+api,timeout,30,prod,set,API timeout in seconds
+cache,enabled,true,staging,set,Enable caching
+invalid_component,,"",dev,set,Missing value test

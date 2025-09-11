@@ -1,0 +1,44 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment and secrets
+.env
+.secrets.toml
+*.secret
+
+# Logs
+logs/
+*.log
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# MGAPI specific
+mgapi_config.json
+*.result.csv
+*.result.csv.backup.*
+.mgapi/
+
+# Test result files
+test_*.result.csv
+test_*.result.csv.backup.*
+
+# OS specific
+.DS_Store
+Thumbs.db

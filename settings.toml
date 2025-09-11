@@ -1,0 +1,26 @@
+[default]
+# Logging settings
+log_level = "INFO"
+log_file = "logs/mgapi.log"
+
+# API client settings
+timeout = 30
+retry_count = 3
+retry_delay = 1
+
+# Output settings
+output_format = "rich"  # rich, json, yaml, plain
+
+# Batch processing settings
+[default.batch]
+chunk_size = 100
+save_intermediate = true
+intermediate_path = "batch_intermediate.csv"
+max_retries = 3
+retry_delay = 1
+
+[development]
+log_level = "DEBUG"
+
+[production]
+log_level = "WARNING"

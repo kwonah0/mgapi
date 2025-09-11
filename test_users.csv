@@ -1,0 +1,6 @@
+username,email,role,action,department
+john,john@example.com,admin,create,IT
+jane,jane@example.com,user,create,HR
+bob,bob@example.com,manager,update,Finance
+alice,alice@example.com,user,delete,IT
+charlie,charlie@invalid-email,admin,create,Marketing
