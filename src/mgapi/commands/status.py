@@ -2,26 +2,30 @@
 
 import click
 
-from ..api_client import MGAPIClient
-from ..config import get_mgapi_url
-from ..utils.formatters import print_status
+from ..core.server import check_server_status
+from ..utils.formatters import print_status, print_job_info
 from ..utils.logger import logger
 
 
 @click.command()
-def status():
+@click.pass_context
+def status(ctx):
     """Check the status of the MGAPI server."""
-    url = get_mgapi_url()
-    logger.info(f"Checking server status at {url}")
-    
-    client = MGAPIClient(url)
-    is_healthy = client.check_health()
-    
-    print_status(is_healthy, url)
-    
-    if is_healthy:
+    logger.info("Checking server status...")
+
+    result = check_server_status()
+
+    if result["status"] == "running":
+        print_status(True, result["url"])
+        if result.get("job_info"):
+            print_job_info(result["job_info"])
         logger.info("Server is healthy")
-        return 0
-    else:
+        ctx.exit(0)
+    elif result["status"] == "not_responding":
+        print_status(False, result["url"])
         logger.warning("Server is not responding")
-        return 1
+        ctx.exit(1)
+    else:
+        print(f"Status: {result.get('message', 'Unknown status')}")
+        logger.warning(f"Server status: {result['status']}")
+        ctx.exit(1)

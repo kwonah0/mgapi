@@ -5,16 +5,12 @@ from typing import Optional
 
 import click
 from InquirerPy import inquirer
-from rich.console import Console
-from rich.panel import Panel
+from colorama import Fore, Style
 
-from ..api_client import MGAPIClient
-from ..config import get_mgapi_url
-from ..utils.formatters import print_error, print_success, format_output
+from ..core.client import check_server_health, send_query
+from ..utils.formatters import print_error, print_query_result, format_output
 from ..utils.validators import validate_query
 from ..utils.logger import logger
-
-console = Console()
 
 
 @click.command()
@@ -41,7 +37,7 @@ def send(query: Optional[str], format: str):
                 multiline=True,
             ).execute()
         except KeyboardInterrupt:
-            console.print("\n[yellow]Cancelled[/yellow]")
+            print(f"\n{Fore.YELLOW}Cancelled{Style.RESET_ALL}")
             return 1
         except Exception as e:
             print_error(f"Failed to get input: {str(e)}")
@@ -52,39 +48,28 @@ def send(query: Optional[str], format: str):
         print_error("Invalid query", "Query cannot be empty")
         return 1
     
-    url = get_mgapi_url()
-    client = MGAPIClient(url)
-    
-    logger.info(f"Sending query to {url}")
-    
-    if not client.check_health():
+    logger.info("Sending query to server...")
+
+    if not check_server_health():
         print_error(
             "Server is not responding",
             "Make sure the server is running (use 'mgapi start')"
         )
         return 1
-    
-    console.print(f"[cyan]Sending query...[/cyan]")
-    
-    result = client.execute_query(validated_query)
-    
+
+    print(f"{Fore.CYAN}Sending query...{Style.RESET_ALL}")
+
+    result = send_query(validated_query)
+
     if result is None:
         print_error("Failed to execute query")
         return 1
-    
+
     if format == "rich":
-        if "error" in result:
-            print_error(f"Query execution failed: {result['error']}")
-        else:
-            console.print(Panel(
-                str(result.get("result", result)),
-                title="Query Result",
-                border_style="green",
-            ))
-            print_success("Query executed successfully")
+        print_query_result(result)
     else:
         output = format_output(result, format)
         click.echo(output)
-    
+
     logger.info("Query executed successfully")
     return 0

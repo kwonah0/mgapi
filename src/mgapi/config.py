@@ -1,12 +1,16 @@
 """Configuration management using Dynaconf."""
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Optional
 
 from dynaconf import Dynaconf
 
 BASE_DIR = Path(__file__).parent.parent.parent
+
+# Default config file name
+DEFAULT_CONFIG_FILE = "mgapi_config.json"
 
 # Client-only settings
 settings = Dynaconf(
@@ -45,13 +49,23 @@ def get_config_value(keypath: Optional[str] = None) -> Any:
     return settings.to_dict()
 
 
+def get_config_file_path() -> Path:
+    """Get the path to the mgapi config file.
+
+    Returns:
+        Path to the config file (from environment variable or default)
+    """
+    config_path = os.getenv("MGAPI_CONFIG_FILE", DEFAULT_CONFIG_FILE)
+    return Path(config_path)
+
+
 def get_server_info() -> dict:
     """Get server information from TCL server's mgapi_config.json.
-    
+
     Returns:
         Server configuration dict or empty dict if file doesn't exist
     """
-    config_file = Path("mgapi_config.json")
+    config_file = get_config_file_path()
     if config_file.exists():
         try:
             with open(config_file) as f:

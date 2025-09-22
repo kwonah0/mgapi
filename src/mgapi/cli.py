@@ -3,18 +3,15 @@
 import sys
 
 import click
-from rich.console import Console
+from colorama import Fore, Style
 
 from . import __version__
 from .commands.status import status
-from .commands.info import info
 from .commands.start import start
 from .commands.close import close
 from .commands.send import send
 from .commands.endpoints import endpoints
-from .commands.batch import batch
 
-console = Console()
 
 
 @click.group()
@@ -58,22 +55,21 @@ def cli(ctx, config, env, verbose):
 
 
 cli.add_command(status)
-cli.add_command(info)
 cli.add_command(start)
 cli.add_command(close)
 cli.add_command(send)
 cli.add_command(endpoints)
-cli.add_command(batch)
 
 
 @cli.command()
 def version():
     """Show the version of MGAPI."""
-    console.print(f"MGAPI version {__version__}")
+    print(f"MGAPI version {__version__}")
 
 
 @cli.command()
-def config():
+@click.pass_context
+def config(ctx):
     """Initialize or validate configuration."""
     from pathlib import Path
     from .utils.formatters import print_success, print_error
@@ -87,6 +83,7 @@ def config():
     
     if found_files:
         print_success(f"Found configuration files: {', '.join(found_files)}")
+        ctx.exit(0)
     else:
         print_error(
             "No configuration files found",
@@ -116,6 +113,9 @@ log_level = "WARNING"
 """
             Path("settings.toml").write_text(default_config)
             print_success("Created default settings.toml")
+            ctx.exit(0)
+        else:
+            ctx.exit(1)
 
 
 def main():
@@ -123,10 +123,10 @@ def main():
     try:
         sys.exit(cli())
     except KeyboardInterrupt:
-        console.print("\n[yellow]Interrupted by user[/yellow]")
+        print(f"\n{Fore.YELLOW}Interrupted by user{Style.RESET_ALL}")
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]Unexpected error: {e}[/red]")
+        print(f"{Fore.RED}Unexpected error: {e}{Style.RESET_ALL}")
         sys.exit(1)
 
 

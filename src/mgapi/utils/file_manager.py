@@ -5,9 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from rich.console import Console
-
-console = Console()
+from loguru import logger
 
 
 class ResultFileManager:
@@ -43,7 +41,7 @@ class ResultFileManager:
             backup_path = Path(f"{self.result_csv}.backup.{timestamp}")
             
             shutil.copy2(self.result_csv, backup_path)
-            console.print(f"[yellow]Backed up existing result to: {backup_path}[/yellow]")
+            logger.warning(f"Backed up existing result to: {backup_path}")
             
             return backup_path
         return None
@@ -62,7 +60,7 @@ class ResultFileManager:
         
         # Save new results
         df.to_csv(self.result_csv, index=False)
-        console.print(f"[green]Results saved to: {self.result_csv}[/green]")
+        logger.info(f"Results saved to: {self.result_csv}")
         
         return self.result_csv
     
@@ -76,6 +74,6 @@ class ResultFileManager:
             try:
                 return pd.read_csv(self.result_csv)
             except Exception as e:
-                console.print(f"[red]Error loading result file: {e}[/red]")
+                logger.error(f"Error loading result file: {e}")
                 return None
         return None

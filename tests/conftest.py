@@ -50,14 +50,14 @@ def mock_settings():
 @pytest.fixture
 def mock_api_client():
     """Mock API client."""
-    with patch('mgapi.api_client.MGAPIClient') as mock_class:
+    with patch('mgapi.core.client.MGAPIClient') as mock_class:
         mock_instance = Mock()
         mock_class.return_value = mock_instance
-        
+
         mock_instance.check_health.return_value = True
         mock_instance.get_bjobid.return_value = "12345"
         mock_instance.execute_query.return_value = {"result": "success"}
-        
+
         yield mock_instance
 
 
@@ -71,15 +71,15 @@ def test_client():
 @pytest.fixture
 def mock_httpx_client():
     """Mock httpx async client."""
-    with patch('mgapi.api_client.httpx.AsyncClient') as mock_class:
+    with patch('mgapi.core.client.httpx.AsyncClient') as mock_class:
         mock_instance = Mock()
         mock_class.return_value.__aenter__.return_value = mock_instance
-        
+
         mock_response = Mock()
         mock_response.json.return_value = {"status": "ok"}
         mock_response.content = b'{"status": "ok"}'
         mock_response.raise_for_status = Mock()
-        
+
         mock_instance.request.return_value = mock_response
-        
+
         yield mock_instance

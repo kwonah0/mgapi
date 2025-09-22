@@ -7,12 +7,9 @@ from typing import Dict, List, Tuple, Any
 
 import duckdb
 import pandas as pd
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
+from loguru import logger
 
 from ..utils.file_manager import ResultFileManager
-
-console = Console()
 
 # Client-side exit codes (negative)
 CLIENT_EXIT_CODES = {
@@ -137,76 +134,67 @@ class BaseSpecProcessor(ABC):
             'dry_run': 0
         }
         
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
-        ) as progress:
-            task = progress.add_task(
-                f"Processing {self.csv_file.name}...", 
-                total=len(df)
-            )
-            
-            for idx, row in df.iterrows():
-                row_dict = row.fillna('').to_dict()
-                
-                # Skip already processed rows
-                if pd.notna(df.at[idx, 'exit_code']):
-                    stats['skipped'] += 1
-                    progress.update(task, advance=1)
-                    continue
-                
-                # Validate row
-                is_valid, validation_msg = self.validate_row(row_dict)
-                if not is_valid:
-                    df.at[idx, 'exit_code'] = -2
-                    df.at[idx, 'message'] = f"Validation failed: {validation_msg}"
-                    df.at[idx, 'processed_at'] = datetime.now()
-                    stats['validation_failed'] += 1
-                    progress.update(task, advance=1)
-                    continue
-                
-                try:
-                    # Generate command
-                    command = self.row_to_command(row_dict)
-                    
-                    if dry_run:
-                        console.print(f"[cyan][DRY RUN] {command[:100]}...[/cyan]")
-                        df.at[idx, 'exit_code'] = -4
-                        df.at[idx, 'message'] = "Dry run - not executed"
-                        stats['dry_run'] += 1
-                    else:
-                        # Execute command
-                        response = self.client.execute_query(command)
-                        exit_code, message = self.process_response(response)
-                        
-                        df.at[idx, 'exit_code'] = exit_code
-                        df.at[idx, 'message'] = message
-                        
-                        # Update statistics
-                        if exit_code == 0:
-                            stats['success'] += 1
-                        elif exit_code == -1:
-                            stats['no_response'] += 1
-                        else:
-                            stats['failed'] += 1
-                        
-                        if not continue_on_error and exit_code != 0:
-                            console.print("[red]Stopping due to error[/red]")
-                            break
-                    
-                except Exception as e:
-                    df.at[idx, 'exit_code'] = -3
-                    df.at[idx, 'message'] = f"Exception: {str(e)}"
-                    stats['exception'] += 1
-                    
-                    if not continue_on_error:
-                        console.print(f"[red]Stopping due to exception: {e}[/red]")
-                        break
-                
+        logger.info(f"Processing {len(df)} rows from {self.csv_file.name}...")
+
+        for idx, row in df.iterrows():
+            row_dict = row.fillna('').to_dict()
+
+            if idx % 10 == 0:
+                logger.info(f"Processing row {idx + 1}/{len(df)}...")
+
+            # Skip already processed rows
+            if pd.notna(df.at[idx, 'exit_code']):
+                stats['skipped'] += 1
+                continue
+
+            # Validate row
+            is_valid, validation_msg = self.validate_row(row_dict)
+            if not is_valid:
+                df.at[idx, 'exit_code'] = -2
+                df.at[idx, 'message'] = f"Validation failed: {validation_msg}"
                 df.at[idx, 'processed_at'] = datetime.now()
-                progress.update(task, advance=1)
+                stats['validation_failed'] += 1
+                continue
+
+            try:
+                # Generate command
+                command = self.row_to_command(row_dict)
+
+                if dry_run:
+                    logger.info(f"[DRY RUN] {command[:100]}...")
+                    df.at[idx, 'exit_code'] = -4
+                    df.at[idx, 'message'] = "Dry run - not executed"
+                    stats['dry_run'] += 1
+                else:
+                    # Execute command
+                    response = self.client.execute_query(command)
+                    exit_code, message = self.process_response(response)
+
+                    df.at[idx, 'exit_code'] = exit_code
+                    df.at[idx, 'message'] = message
+
+                    # Update statistics
+                    if exit_code == 0:
+                        stats['success'] += 1
+                    elif exit_code == -1:
+                        stats['no_response'] += 1
+                    else:
+                        stats['failed'] += 1
+
+                    if not continue_on_error and exit_code != 0:
+                        logger.error("Stopping due to error")
+                        break
+
+            except Exception as e:
+                df.at[idx, 'exit_code'] = -3
+                df.at[idx, 'message'] = f"Exception: {str(e)}"
+                stats['exception'] += 1
+
+                if not continue_on_error:
+                    logger.error(f"Stopping due to exception: {e}")
+                    break
+
+            df.at[idx, 'processed_at'] = datetime.now()
         
         # Save results
         result_path = self.file_manager.save_results(df)
